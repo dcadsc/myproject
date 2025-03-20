@@ -7,7 +7,7 @@ public class Main {
         // 组合多个处理步骤
         MessageProcessor kafkaSender = new KafkaMessageProcessor("localhost:9092", "my-topic");
         MessageProcessor filterProcessor = new FilterProcessor(kafkaSender);
-        MessageProcessor dedupProcessor = new DeduplicationProcessor(filterProcessor);
+        MessageProcessor dedupProcessor = new DeduplicationProcessor(filterProcessor); // 传入下一个处理器
 
         // WebSocket 地址
         String wsUrl = "ws://172.134.10.52:8090/mywebsocket";

@@ -11,7 +11,10 @@ public class FilterProcessor extends MessageProcessorDecorator {
             System.out.println("[FilterProcessor] Message filtered: " + message);
         } else {
             System.out.println("[FilterProcessor] Message passed filter: " + message);
-            nextProcessor.process(message);
+            // 继续处理
+            if (nextProcessor != null) {
+                nextProcessor.process(message);
+            }
         }
     }
 }

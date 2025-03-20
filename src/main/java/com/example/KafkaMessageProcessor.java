@@ -21,6 +21,9 @@ public class KafkaMessageProcessor implements MessageProcessor {
 
     @Override
     public void process(String message) {
+        // 显示将要发送的消息内容
+        System.out.println("[Kafka] Preparing to send message: " + message);
+
         producer.send(new ProducerRecord<>(topic, message), (metadata, exception) -> {
             if (exception == null) {
                 System.out.println("[Kafka] Success: " + metadata.topic() + " offset " + metadata.offset());

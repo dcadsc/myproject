@@ -1,0 +1,7 @@
+com/example/MessageProcessor.class
+com/example/WebSocketClientImpl.class
+com/example/DeduplicationProcessor.class
+com/example/FilterProcessor.class
+com/example/Main.class
+com/example/MessageProcessorDecorator.class
+com/example/KafkaMessageProcessor.class
