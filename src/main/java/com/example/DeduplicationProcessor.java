@@ -1,23 +1,23 @@
 package com.example;
 
 import java.util.HashSet;
-import java.util.Set;
 
-public class DeduplicationProcessor extends MessageProcessorDecorator {
-    private Set<String> cache = new HashSet<>();
+public class DeduplicationProcessor {
 
-    public DeduplicationProcessor(MessageProcessor nextProcessor) {
-        super(nextProcessor);
-    }
+    private HashSet<String> messageCache = new HashSet<>();
 
-    @Override
-    public void process(String message) {
-        if (!cache.contains(message)) {
-            cache.add(message);
-            System.out.println("[DeduplicationProcessor] Message passed deduplication: " + message);
-            nextProcessor.process(message);
-        } else {
-            System.out.println("[DeduplicationProcessor] Duplicate message ignored: " + message);
+    public boolean process(String messageId, String messageContent) {
+        // 1. 判断是否已存在
+        if (messageCache.contains(messageId)) {
+            System.out.println("Duplicate message detected: " + messageId);
+            return false; // 去重，丢弃重复消息
         }
+
+        // 2. 添加到 HashSet
+        messageCache.add(messageId);
+
+        // 3. 继续正常处理逻辑
+        System.out.println("Processing message: " + messageContent);
+        return true;
     }
 }
