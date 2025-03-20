@@ -1,18 +1,26 @@
 package com.example;
 
+import java.net.URI;
+
 public class Main {
-    public static void main(String[] args) {
-        // 装配装饰链：Kafka <- Filter <- Dedup <- WebSocket
-        MessageProcessor kafkaSender = new KafkaProducer();
-        MessageProcessor filter = new FilterProcessor(kafkaSender);
-        MessageProcessor dedup = new DeduplicationProcessor(filter);
+    public static void main(String[] args) throws Exception {
+        // 组合多个处理步骤
+        MessageProcessor kafkaSender = new KafkaMessageProcessor("localhost:9092", "my-topic");
+        MessageProcessor filterProcessor = new FilterProcessor(kafkaSender);
+        MessageProcessor dedupProcessor = new DeduplicationProcessor(filterProcessor);
 
-        WebSocketClient wsClient = new WebSocketClient(dedup);
+        // WebSocket 地址
+        String wsUrl = "ws://172.134.10.52:8090/mywebsocket";
 
-        // 模拟 WebSocket 消息
-        wsClient.onMessage("msg1");
-        wsClient.onMessage("msg1"); // 去重
-        wsClient.onMessage("filter_this_msg"); // 被过滤
-        wsClient.onMessage("msg2"); // 通过全部处理链，发送到 Kafka
+        // WebSocketClient
+        WebSocketClientImpl wsClient = new WebSocketClientImpl(new URI(wsUrl), dedupProcessor);
+
+        // 连接 WebSocket 服务端
+        wsClient.connect();
+
+        // 阻塞主线程保持运行
+        while (true) {
+            Thread.sleep(10000);
+        }
     }
 }
