@@ -16,6 +16,9 @@ public class WebSocketClientImpl extends WebSocketClient {
     @Override
     public void onOpen(ServerHandshake handshakedata) {
         System.out.println("[WebSocket] Connected to server");
+        // 连接成功后，发送确认消息
+        String confirmMessage = "Connection established with server";
+        this.send(confirmMessage);
     }
 
     @Override
