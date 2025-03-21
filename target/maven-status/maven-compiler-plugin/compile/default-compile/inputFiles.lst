@@ -1,6 +1,7 @@
 /opt/myproject/src/main/java/com/example/FilterProcessor.java
 /opt/myproject/src/main/java/com/example/KafkaMessageProcessor.java
 /opt/myproject/src/main/java/com/example/DeduplicationProcessor.java
+/opt/myproject/src/main/java/com/example/WhitelistImporter.java
 /opt/myproject/src/main/java/com/example/MessageProcessor.java
 /opt/myproject/src/main/java/com/example/Main.java
 /opt/myproject/src/main/java/com/example/MessageProcessorDecorator.java

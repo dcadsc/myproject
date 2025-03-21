@@ -1,3 +1,4 @@
+com/example/WhitelistImporter.class
 com/example/MessageProcessor.class
 com/example/WebSocketClientImpl.class
 com/example/DeduplicationProcessor.class

@@ -15,22 +15,21 @@ public class WebSocketClientImpl extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake handshakedata) {
-        System.out.println("[WebSocket] Connected to " + getURI());
+        System.out.println("[WebSocket] Connected to server");
     }
 
     @Override
     public void onMessage(String message) {
-        System.out.println("[WebSocket] Received: " + message);
         processor.process(message);
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        System.out.println("[WebSocket] Connection closed: " + reason);
+        System.out.println("[WebSocket] Connection closed");
     }
 
     @Override
     public void onError(Exception ex) {
-        System.err.println("[WebSocket] Error: " + ex.getMessage());
+        ex.printStackTrace();
     }
 }
