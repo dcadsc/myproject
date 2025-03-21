@@ -2,8 +2,11 @@ package com.example;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -13,9 +16,8 @@ public class FilterProcessor implements MessageProcessor {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public FilterProcessor(MessageProcessor nextProcessor, List<String> whitelist) {
-        // 预处理白名单：去空格，忽略大小写（如果需要）
         this.whitelist = whitelist.stream()
-                .map(item -> normalize(item))
+                .map(this::normalize)
                 .collect(Collectors.toList());
         this.nextProcessor = nextProcessor;
     }
@@ -27,22 +29,45 @@ public class FilterProcessor implements MessageProcessor {
             JsonNode dataNode = rootNode.get("data");
 
             if (dataNode != null && dataNode.isArray()) {
-                boolean matched = false;
+                // 分类存储
+                List<JsonNode> matchedDps = new ArrayList<>();
+                List<JsonNode> unmatchedDps = new ArrayList<>();
+
+                // 第一个 dp 通常是 meta 信息，原样保留
+                JsonNode metaNode = dataNode.get(0);
+
                 for (int i = 1; i < dataNode.size(); i++) { // 从第二个 dp 开始
-                    JsonNode dpNode = dataNode.get(i).get("dp");
-                    if (dpNode != null) {
-                        String dpValue = normalize(dpNode.asText());
-                        System.out.println("[DEBUG] dpNode: '" + dpValue + "'");
-                        if (whitelist.contains(dpValue)) {
-                            matched = true;
-                            break;
-                        }
+                    JsonNode dpNode = dataNode.get(i);
+                    String dpValue = normalize(dpNode.get("dp").asText());
+                    if (whitelist.contains(dpValue)) {
+                        matchedDps.add(dpNode);
+                    } else {
+                        unmatchedDps.add(dpNode);
                     }
                 }
-                if (matched) {
-                    nextProcessor.process(message);
-                } else {
-                    System.out.println("[Filter] All dp filtered out for message: " + message);
+
+                // 生成包含 matched dp 的消息
+                if (!matchedDps.isEmpty()) {
+                    ArrayNode matchedArray = objectMapper.createArrayNode();
+                    matchedArray.add(metaNode);
+                    matchedDps.forEach(matchedArray::add);
+
+                    ObjectNode matchedRoot = objectMapper.createObjectNode();
+                    matchedRoot.set("data", matchedArray);
+
+                    nextProcessor.process(objectMapper.writeValueAsString(matchedRoot));
+                }
+
+                // 处理 unmatched dp
+                if (!unmatchedDps.isEmpty()) {
+                    ArrayNode unmatchedArray = objectMapper.createArrayNode();
+                    unmatchedArray.add(metaNode);
+                    unmatchedDps.forEach(unmatchedArray::add);
+
+                    ObjectNode unmatchedRoot = objectMapper.createObjectNode();
+                    unmatchedRoot.set("data", unmatchedArray);
+
+                    System.out.println("[Filter] Unmatched dp dropped: " + objectMapper.writeValueAsString(unmatchedRoot));
                 }
             }
         } catch (IOException e) {
@@ -50,11 +75,8 @@ public class FilterProcessor implements MessageProcessor {
         }
     }
 
-    // 统一处理方法，去空格、不可见字符、转小写（可选）
     private String normalize(String input) {
         if (input == null) return "";
-        return input.replaceAll("\\s+", "") // 去除所有空白字符
-                    .trim()
-                    .toLowerCase(); // 如果需要忽略大小写就加上
+        return input.replaceAll("\\s+", "").trim().toLowerCase();
     }
 }
