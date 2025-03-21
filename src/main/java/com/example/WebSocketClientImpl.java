@@ -4,14 +4,14 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class WebSocketClientImpl extends WebSocketClient {
-    private MessageProcessor processor;
-    private URI serverUri;
-    private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final MessageProcessor processor;
+    private final URI serverUri;
+    private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private static volatile boolean reconnecting = false;
+    private static final int RECONNECT_DELAY = 5;  // 重连延迟时间，单位秒
 
     public WebSocketClientImpl(URI serverUri, MessageProcessor processor) {
         super(serverUri);
@@ -22,10 +22,11 @@ public class WebSocketClientImpl extends WebSocketClient {
     @Override
     public void onOpen(ServerHandshake handshakedata) {
         System.out.println("[WebSocket] Connected to server");
+        reconnecting = false;
 
-        // 连接成功后，发送确认消息
-        String confirmMessage = "Connection established with server";
-        this.send(confirmMessage);
+        // 连接成功后发送一条消息
+        String message = "Connection established successfully!";
+        this.send(message);  // 发送消息
     }
 
     @Override
@@ -36,24 +37,22 @@ public class WebSocketClientImpl extends WebSocketClient {
     @Override
     public void onClose(int code, String reason, boolean remote) {
         System.out.println("[WebSocket] Connection closed. Reason: " + reason);
-        scheduleReconnect();
+        tryReconnect();
     }
 
     @Override
     public void onError(Exception ex) {
         System.out.println("[WebSocket] Error occurred: " + ex.getMessage());
-        scheduleReconnect();
+        tryReconnect();
     }
 
-    private void scheduleReconnect() {
+    private void tryReconnect() {
+        if (reconnecting) return; // 如果正在重连，避免重复重连
+        reconnecting = true;
         scheduler.schedule(() -> {
             System.out.println("[WebSocket] Attempting to reconnect...");
-            try {
-                WebSocketClientImpl newClient = new WebSocketClientImpl(serverUri, processor);
-                newClient.connect();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }, 5, TimeUnit.SECONDS);
+            WebSocketClientImpl newClient = new WebSocketClientImpl(serverUri, processor);
+            newClient.connect();
+        }, RECONNECT_DELAY, TimeUnit.SECONDS);
     }
 }
