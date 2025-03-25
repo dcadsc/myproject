@@ -5,4 +5,4 @@
 /opt/myproject/src/main/java/com/example/MessageProcessor.java
 /opt/myproject/src/main/java/com/example/Main.java
 /opt/myproject/src/main/java/com/example/MessageProcessorDecorator.java
-/opt/myproject/src/main/java/com/example/WebSocketClientImpl.java
+/opt/myproject/src/main/java/com/example/TyrusWebSocketClient.java
