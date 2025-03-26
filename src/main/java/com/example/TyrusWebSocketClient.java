@@ -2,22 +2,33 @@ package com.example;
 
 import javax.websocket.*;
 import java.net.URI;
-
+import java.util.List;
 
 @ClientEndpoint
 public class TyrusWebSocketClient {
     private final MessageProcessor processor;
     private Session session;
-    private final URI serverUri;
+    private final List<URI> serverUris;
+    private int currentServerIndex = 0; // 记录当前连接的 WebSocket 地址索引
     private static final int RECONNECT_DELAY = 5000; // 5秒后重连
     private boolean reconnecting = false; // 防止重复重连
 
-    public TyrusWebSocketClient(URI serverUri, MessageProcessor processor) {
-        this.serverUri = serverUri;
+    public TyrusWebSocketClient(List<URI> serverUris, MessageProcessor processor) {
+        this.serverUris = serverUris;
         this.processor = processor;
     }
 
     public void connect() throws Exception {
+        if (serverUris.isEmpty()) {
+            throw new IllegalStateException("No WebSocket server URIs provided");
+        }
+
+        attemptConnection();
+    }
+
+    private void attemptConnection() throws Exception {
+        URI serverUri = serverUris.get(currentServerIndex);
+        System.out.println("[WebSocket] Connecting to: " + serverUri);
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         container.connectToServer(this, serverUri);
     }
@@ -25,8 +36,8 @@ public class TyrusWebSocketClient {
     @OnOpen
     public void onOpen(Session session) {
         this.session = session;
-        System.out.println("[WebSocket] Connected to server");
-        // 连接成功后发送一条消息
+        System.out.println("[WebSocket] Connected to: " + serverUris.get(currentServerIndex));
+        reconnecting = false; // 连接成功，停止重连
         session.getAsyncRemote().sendText("Connection established successfully");
     }
 
@@ -38,34 +49,34 @@ public class TyrusWebSocketClient {
     @OnClose
     public void onClose(Session session, CloseReason closeReason) {
         System.out.println("[WebSocket] Connection closed. Reason: " + closeReason);
-        // 如果连接关闭，尝试重连
         attemptReconnect();
     }
 
     @OnError
     public void onError(Session session, Throwable throwable) {
         System.out.println("[WebSocket] Error occurred: " + throwable.getMessage());
-        // 如果发生错误，尝试重连
         attemptReconnect();
     }
 
-    // 尝试重连的方法
+    // 断线自动切换到下一个地址
     private void attemptReconnect() {
         if (!reconnecting) {
             reconnecting = true;
             System.out.println("[WebSocket] Attempting to reconnect...");
 
-            // 创建一个新的线程进行重连操作
             new Thread(() -> {
                 try {
-                    Thread.sleep(RECONNECT_DELAY); // 延迟重连，避免频繁重试
-                    connect(); // 尝试重新连接
-                    reconnecting = false; // 重连成功，标记为不再重连
-                    System.out.println("[WebSocket] Reconnected to server");
+                    Thread.sleep(RECONNECT_DELAY); // 5秒后重连
+
+                    // 切换到下一个服务器地址
+                    currentServerIndex = (currentServerIndex + 1) % serverUris.size();
+                    System.out.println("[WebSocket] Switching to: " + serverUris.get(currentServerIndex));
+
+                    attemptConnection();
                 } catch (Exception e) {
                     System.out.println("[WebSocket] Reconnection failed: " + e.getMessage());
                     reconnecting = false;
-                    attemptReconnect(); // 如果重连失败，继续尝试
+                    attemptReconnect(); // 继续尝试
                 }
             }).start();
         }
